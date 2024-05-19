@@ -9,11 +9,11 @@
 ///////////////////// VARIABLES ////////////////////
 
 
-// SCREEN: ui_ScreenWind
-void ui_ScreenWind_screen_init(void);
-lv_obj_t * ui_ScreenWind;
-lv_obj_t * ui_ContainerWind;
-lv_obj_t * ui_PanelWindNavigation;
+// SCREEN: ui_ScreenMain
+void ui_ScreenMain_screen_init(void);
+lv_obj_t * ui_ScreenMain;
+lv_obj_t * ui_MainContainerWind;
+lv_obj_t * ui_PanelNavigation;
 lv_obj_t * ui_LabelWindScreen;
 void ui_event_Button2(lv_event_t * e);
 lv_obj_t * ui_Button2;
@@ -28,34 +28,28 @@ lv_obj_t * ui_Label1TWS;
 lv_obj_t * ui_Panel1;
 lv_obj_t * ui_LabelTWSValue;
 lv_obj_t * ui_Label2;
-lv_obj_t * ui_ContainerTWA;
-lv_obj_t * ui_Label1TWA;
-lv_obj_t * ui_Panel2;
-lv_obj_t * ui_LabelTWAValue;
-lv_obj_t * ui_Label1;
-lv_obj_t * ui_ContainerAWA;
-lv_obj_t * ui_LabelAWA;
-lv_obj_t * ui_Panel3;
-lv_obj_t * ui_LabelAWAValue;
-lv_obj_t * ui_Label3;
 lv_obj_t * ui_ContainerTWD;
 lv_obj_t * ui_LabelTWD;
 lv_obj_t * ui_Panel4;
 lv_obj_t * ui_LabelTWDValue;
 lv_obj_t * ui_Label4;
-
-
-// SCREEN: ui_ScreenCompass
-void ui_ScreenCompass_screen_init(void);
-lv_obj_t * ui_ScreenCompass;
-lv_obj_t * ui_Container2;
-lv_obj_t * ui_PanelCompassNavigation;
+lv_obj_t * ui_ContainerAWA;
+lv_obj_t * ui_LabelAWA;
+lv_obj_t * ui_Panel3;
+lv_obj_t * ui_LabelAWAValue;
+lv_obj_t * ui_Label3;
+lv_obj_t * ui_ContainerTWA;
+lv_obj_t * ui_Label1TWA;
+lv_obj_t * ui_Panel2;
+lv_obj_t * ui_LabelTWAValue;
+lv_obj_t * ui_Label1;
+lv_obj_t * ui_MainContainerCompass;
+lv_obj_t * ui_PanelNavigation2;
 lv_obj_t * ui_LabelWindScreen2;
-void ui_event_Button4(lv_event_t * e);
-lv_obj_t * ui_Button4;
 void ui_event_Button5(lv_event_t * e);
 lv_obj_t * ui_Button5;
-lv_obj_t * ui_ContainerCompassMain;
+void ui_event_Button1(lv_event_t * e);
+lv_obj_t * ui_Button1;
 lv_obj_t * ui_ImageCompassBack;
 lv_obj_t * ui_ImageRedGreen;
 lv_obj_t * ui_ImageCompassCenter;
@@ -64,20 +58,14 @@ lv_obj_t * ui_Label9;
 lv_obj_t * ui_Label10;
 lv_obj_t * ui_LabelCompGPSSpeed;
 lv_obj_t * ui_LabelCompDepth;
-
-
-// SCREEN: ui_ScreenDepth
-void ui_ScreenDepth_screen_init(void);
-lv_obj_t * ui_ScreenDepth;
-lv_obj_t * ui_ContainerTridata;
-lv_obj_t * ui_Container1;
-lv_obj_t * ui_PanelCompassNavigation2;
+lv_obj_t * ui_MainContainerTridata;
+lv_obj_t * ui_PanelNavigation3;
 lv_obj_t * ui_LabelWindScreen3;
-void ui_event_Button6(lv_event_t * e);
-lv_obj_t * ui_Button6;
 void ui_event_Button7(lv_event_t * e);
 lv_obj_t * ui_Button7;
-lv_obj_t * ui_ContainerTridataValues;
+void ui_event_Button4(lv_event_t * e);
+lv_obj_t * ui_Button4;
+lv_obj_t * ui_Container2;
 lv_obj_t * ui_ContainerDirection;
 lv_obj_t * ui_Panel5;
 lv_obj_t * ui_Label5;
@@ -111,7 +99,8 @@ void ui_event_Button2(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_ScreenDepth, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_ScreenDepth_screen_init);
+        _ui_flag_modify(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+        _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
     }
 }
 void ui_event_Button3(lv_event_t * e)
@@ -119,15 +108,8 @@ void ui_event_Button3(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_ScreenCompass, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_ScreenCompass_screen_init);
-    }
-}
-void ui_event_Button4(lv_event_t * e)
-{
-    lv_event_code_t event_code = lv_event_get_code(e);
-    lv_obj_t * target = lv_event_get_target(e);
-    if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_ScreenWind, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_ScreenWind_screen_init);
+        _ui_flag_modify(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+        _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
     }
 }
 void ui_event_Button5(lv_event_t * e)
@@ -135,15 +117,17 @@ void ui_event_Button5(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_ScreenDepth, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_ScreenDepth_screen_init);
+        _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+        _ui_flag_modify(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
     }
 }
-void ui_event_Button6(lv_event_t * e)
+void ui_event_Button1(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_ScreenCompass, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_ScreenCompass_screen_init);
+        _ui_flag_modify(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+        _ui_flag_modify(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
     }
 }
 void ui_event_Button7(lv_event_t * e)
@@ -151,7 +135,17 @@ void ui_event_Button7(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
     lv_obj_t * target = lv_event_get_target(e);
     if(event_code == LV_EVENT_CLICKED) {
-        _ui_screen_change(&ui_ScreenWind, LV_SCR_LOAD_ANIM_NONE, 0, 0, &ui_ScreenWind_screen_init);
+        _ui_flag_modify(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+        _ui_flag_modify(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+    }
+}
+void ui_event_Button4(lv_event_t * e)
+{
+    lv_event_code_t event_code = lv_event_get_code(e);
+    lv_obj_t * target = lv_event_get_target(e);
+    if(event_code == LV_EVENT_CLICKED) {
+        _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+        _ui_flag_modify(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
     }
 }
 
@@ -163,9 +157,7 @@ void ui_init(void)
     lv_theme_t * theme = lv_theme_default_init(dispp, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
                                                false, LV_FONT_DEFAULT);
     lv_disp_set_theme(dispp, theme);
-    ui_ScreenWind_screen_init();
-    ui_ScreenCompass_screen_init();
-    ui_ScreenDepth_screen_init();
+    ui_ScreenMain_screen_init();
     ui____initial_actions0 = lv_obj_create(NULL);
-    lv_disp_load_scr(ui_ScreenWind);
+    lv_disp_load_scr(ui_ScreenMain);
 }

@@ -1,6 +1,4 @@
-SET(SOURCES screens/ui_ScreenWind.c
-    screens/ui_ScreenCompass.c
-    screens/ui_ScreenDepth.c
+SET(SOURCES screens/ui_ScreenMain.c
     ui.c
     components/ui_comp_hook.c
     ui_helpers.c

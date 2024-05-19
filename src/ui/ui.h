@@ -25,11 +25,11 @@ extern "C" {
 #include "ui_helpers.h"
 #include "ui_events.h"
 
-// SCREEN: ui_ScreenWind
-void ui_ScreenWind_screen_init(void);
-extern lv_obj_t * ui_ScreenWind;
-extern lv_obj_t * ui_ContainerWind;
-extern lv_obj_t * ui_PanelWindNavigation;
+// SCREEN: ui_ScreenMain
+void ui_ScreenMain_screen_init(void);
+extern lv_obj_t * ui_ScreenMain;
+extern lv_obj_t * ui_MainContainerWind;
+extern lv_obj_t * ui_PanelNavigation;
 extern lv_obj_t * ui_LabelWindScreen;
 void ui_event_Button2(lv_event_t * e);
 extern lv_obj_t * ui_Button2;
@@ -44,32 +44,28 @@ extern lv_obj_t * ui_Label1TWS;
 extern lv_obj_t * ui_Panel1;
 extern lv_obj_t * ui_LabelTWSValue;
 extern lv_obj_t * ui_Label2;
-extern lv_obj_t * ui_ContainerTWA;
-extern lv_obj_t * ui_Label1TWA;
-extern lv_obj_t * ui_Panel2;
-extern lv_obj_t * ui_LabelTWAValue;
-extern lv_obj_t * ui_Label1;
-extern lv_obj_t * ui_ContainerAWA;
-extern lv_obj_t * ui_LabelAWA;
-extern lv_obj_t * ui_Panel3;
-extern lv_obj_t * ui_LabelAWAValue;
-extern lv_obj_t * ui_Label3;
 extern lv_obj_t * ui_ContainerTWD;
 extern lv_obj_t * ui_LabelTWD;
 extern lv_obj_t * ui_Panel4;
 extern lv_obj_t * ui_LabelTWDValue;
 extern lv_obj_t * ui_Label4;
-// SCREEN: ui_ScreenCompass
-void ui_ScreenCompass_screen_init(void);
-extern lv_obj_t * ui_ScreenCompass;
-extern lv_obj_t * ui_Container2;
-extern lv_obj_t * ui_PanelCompassNavigation;
+extern lv_obj_t * ui_ContainerAWA;
+extern lv_obj_t * ui_LabelAWA;
+extern lv_obj_t * ui_Panel3;
+extern lv_obj_t * ui_LabelAWAValue;
+extern lv_obj_t * ui_Label3;
+extern lv_obj_t * ui_ContainerTWA;
+extern lv_obj_t * ui_Label1TWA;
+extern lv_obj_t * ui_Panel2;
+extern lv_obj_t * ui_LabelTWAValue;
+extern lv_obj_t * ui_Label1;
+extern lv_obj_t * ui_MainContainerCompass;
+extern lv_obj_t * ui_PanelNavigation2;
 extern lv_obj_t * ui_LabelWindScreen2;
-void ui_event_Button4(lv_event_t * e);
-extern lv_obj_t * ui_Button4;
 void ui_event_Button5(lv_event_t * e);
 extern lv_obj_t * ui_Button5;
-extern lv_obj_t * ui_ContainerCompassMain;
+void ui_event_Button1(lv_event_t * e);
+extern lv_obj_t * ui_Button1;
 extern lv_obj_t * ui_ImageCompassBack;
 extern lv_obj_t * ui_ImageRedGreen;
 extern lv_obj_t * ui_ImageCompassCenter;
@@ -78,18 +74,14 @@ extern lv_obj_t * ui_Label9;
 extern lv_obj_t * ui_Label10;
 extern lv_obj_t * ui_LabelCompGPSSpeed;
 extern lv_obj_t * ui_LabelCompDepth;
-// SCREEN: ui_ScreenDepth
-void ui_ScreenDepth_screen_init(void);
-extern lv_obj_t * ui_ScreenDepth;
-extern lv_obj_t * ui_ContainerTridata;
-extern lv_obj_t * ui_Container1;
-extern lv_obj_t * ui_PanelCompassNavigation2;
+extern lv_obj_t * ui_MainContainerTridata;
+extern lv_obj_t * ui_PanelNavigation3;
 extern lv_obj_t * ui_LabelWindScreen3;
-void ui_event_Button6(lv_event_t * e);
-extern lv_obj_t * ui_Button6;
 void ui_event_Button7(lv_event_t * e);
 extern lv_obj_t * ui_Button7;
-extern lv_obj_t * ui_ContainerTridataValues;
+void ui_event_Button4(lv_event_t * e);
+extern lv_obj_t * ui_Button4;
+extern lv_obj_t * ui_Container2;
 extern lv_obj_t * ui_ContainerDirection;
 extern lv_obj_t * ui_Panel5;
 extern lv_obj_t * ui_Label5;

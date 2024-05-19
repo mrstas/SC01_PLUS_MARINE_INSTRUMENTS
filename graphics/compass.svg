@@ -27,15 +27,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="2.8284271"
-     inkscape:cx="372.64527"
-     inkscape:cy="519.54671"
+     inkscape:zoom="2"
+     inkscape:cx="297.25"
+     inkscape:cy="511.75"
      inkscape:window-width="2560"
      inkscape:window-height="1377"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer3" />
+     inkscape:current-layer="layer1" />
   <defs
      id="defs1">
     <linearGradient
@@ -49,18 +49,6 @@
          style="stop-color:#cccccc;stop-opacity:0;"
          offset="1"
          id="stop471" />
-    </linearGradient>
-    <linearGradient
-       id="linearGradient4"
-       inkscape:collect="always">
-      <stop
-         style="stop-color:#808080;stop-opacity:1;"
-         offset="0"
-         id="stop4" />
-      <stop
-         style="stop-color:#808080;stop-opacity:0;"
-         offset="1"
-         id="stop5" />
     </linearGradient>
     <linearGradient
        id="linearGradient273"
@@ -228,15 +216,6 @@
        gradientTransform="translate(-0.0970545)" />
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient4"
-       id="linearGradient5"
-       x1="-103.72205"
-       y1="-173.95984"
-       x2="-97.665703"
-       y2="-84.559731"
-       gradientUnits="userSpaceOnUse" />
-    <linearGradient
-       inkscape:collect="always"
        xlink:href="#linearGradient285"
        id="linearGradient286"
        x1="81.385933"
@@ -330,7 +309,7 @@
          inkscape:tile-y0="89.904741"
          inkscape:label="circle44" />
       <circle
-         style="display:inline;fill:url(#linearGradient5);fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.245019;stroke-dasharray:none"
+         style="display:inline;fill:#ffeeaa;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.245019;stroke-dasharray:none"
          id="circle44-8"
          cx="-105"
          cy="-148.5"

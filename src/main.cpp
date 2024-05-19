@@ -118,6 +118,7 @@ LGFX tft;
 /* Serial debugging */
 void my_print(const char *buf)
 {
+  // debugD("%s", buf);
   Serial.printf(buf);
   Serial.flush();
 }
@@ -153,8 +154,8 @@ void my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
     data->state = LV_INDEV_STATE_PR;
     //  data->point.x = touchX;
     //  data->point.y = touchY;
-     data->point.x = map(touchX, 0, 319, 0, 479); // after rotation need to fix range???
-     data->point.y = map(touchY, 0, 479, 0, 319);
+    data->point.x = map(touchX, 0, 319, 0, 479); // after rotation need to fix range???
+    data->point.y = map(touchY, 0, 479, 0, 319);
 
 #if DEBUG_TOUCH != 0
     Serial.print("Data x ");
@@ -170,11 +171,35 @@ ReactESP app;
 //************************************************************************************
 //  SETUP AND LOOP
 //************************************************************************************
-int targetTrueVal = 0;
-int targetAppVal = 0;
 
-int currentTrueVal = 0;
-int currentAppVal = 0;
+// following vrs are fo storing current values, logic is to prevent refreshing displayed
+// values if new value is the same as currently displayed
+// storing in global var as reading from UI will return char[] which is not helpfull as we rounding
+// and converting each text to desired resolution
+
+float varWindScr_EnvironmentWindSpeedTrue = 0;
+float varWindScr_EnvironmentWindDirectionTrue = 0;
+float varWindScr_EnvironmentWindSpeedApparent = 0;
+float varWindScr_EnvironmentWindAngleApparent = 0;
+float varWindScr_EnvironmentWindAngleTrueGround = 0;
+
+float varTridataScr_NavigationSpeedThroughWater = 0;
+float varTridataScr_EnvironmentDepthBelowTransducer = 0;
+float varTridataScr_NavigationCourseOverGroundMagnetic = 0;
+
+float varCompassScr_NavigationSpeedOverGround = 0;
+float varCompassScr_EnvironmentDepthBelowTransducer = 0;
+float varCompassScr_NavigationCourseOverGroundMagnetic = 0;
+
+// for Wind screen arrow animation
+int currentTrueWindAngle = 0;
+int targetTrueWindAngle = 0;
+
+int currentAppWindAngle = 0;
+int targetAppWindAngle = 0;
+
+int currentCompassAngle = 0;
+int targetCompassAngle = 0;
 
 void setup()
 {
@@ -184,99 +209,189 @@ void setup()
 
   // Create the global SensESPApp() object.
   sensesp_app = builder.set_hostname("sensesp-listener-heading")
-                    ->enable_ota("thisisfine")
+                    //->enable_ota("thisisfine")
                     ->get_app();
 
 #ifndef SERIAL_DEBUG_DISABLED
   SetupSerialDebug(115200);
 #endif
 
-  // create a new SKListener for "environment.wind.speedApparent"
+  // apparent wind speed (m/s)
+  auto wind_speedApparent = new SKValueListener<float>("environment.wind.speedApparent");
+  wind_speedApparent->connect_to(new LambdaConsumer<float>([](float input)
+                                                           {
+    debugD("wind.speedApparent: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN)) //update only if current container is not hidden (e.g. container is visible)
+    {
+      if (input != varWindScr_EnvironmentWindSpeedApparent) // update only if displayed value is different from new input
+      {
+        char displayValueBuffer[10];
+        sprintf(displayValueBuffer, "%0.1f", input * 1.944);
+        debugD("setting ui_LabelAppWindSpd to %s", displayValueBuffer);
+        lv_label_set_text(ui_LabelAppWindSpd, displayValueBuffer);
+        varWindScr_EnvironmentWindSpeedApparent = input; // assign new input to variable for checking in next input update
+      }
+    } }));
 
-  auto wsa = new SKValueListener<float>("environment.wind.speedApparent");
-  wsa->connect_to(new LambdaConsumer<float>([](float input1)
-                                            {
-                                              debugD("wind.speedApparent: %f", input1);
-                                              char buf2[10];
-                                              sprintf(buf2, "%0.1f", input1*1.944);
-                                              lv_label_set_text(ui_LabelAppWindSpd, buf2); }));
+  // apparent wind angle (rad)
+  auto wind_angleApparent = new SKValueListener<float>("environment.wind.angleApparent");
+  wind_angleApparent->connect_to(new LambdaConsumer<float>([](float input)
+                                                           {
+    debugD("environment.wind.angleApparent: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varWindScr_EnvironmentWindAngleApparent)
+      {
+        char displayValueBuffer[10];
+        targetAppWindAngle = int(trunc(input * 180 / PI)); 
+        sprintf(displayValueBuffer, "%d", targetAppWindAngle);
+        debugD("setting ui_LabelAWAValue to %s", displayValueBuffer);
+        lv_label_set_text(ui_LabelAWAValue, displayValueBuffer);
+        varWindScr_EnvironmentWindAngleApparent = input;
+      }
+    } }));
 
-  auto wda = new SKValueListener<float>("environment.wind.angleApparent");
-  wda->connect_to(new LambdaConsumer<float>([](float input2)
-                                            {   
-                                              targetAppVal = int(trunc( input2 * 1800 / PI));
-                                              char buf2[10];
-                                              sprintf(buf2, "%d", targetAppVal/10);
-                                              lv_label_set_text(ui_LabelAWAValue, buf2);
-                                              debugD("environment.wind.angleApparent: %d deg", targetAppVal); }));
+  // true wind angle varWind_angleTrueGround (rad)
+  auto wind_angleTrueGround = new SKValueListener<float>("environment.wind.angleTrueGround");
+  wind_angleTrueGround->connect_to(new LambdaConsumer<float>([](float input)
+                                                             {
+    debugD("environment.wind.angleTrueGround: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varWindScr_EnvironmentWindAngleTrueGround)
+      {
+        char displayValueBuffer[10];
+        targetTrueWindAngle = int(trunc(input * 180 / PI));
+        sprintf(displayValueBuffer, "%d", targetTrueWindAngle);
+        debugD("setting ui_LabelTWAValue to %s", displayValueBuffer);
+        lv_label_set_text(ui_LabelTWAValue, displayValueBuffer);       
+        varWindScr_EnvironmentWindAngleTrueGround = input;
+      }
+    } }));
 
-  auto wat = new SKValueListener<float>("environment.wind.angleTrueGround");
-  wat->connect_to(new LambdaConsumer<float>([](float input3)
-                                            {
-                                              targetTrueVal = int(trunc( input3 * 1800 / PI));
-                                              char buf2[10];
-                                              sprintf(buf2, "%d", targetTrueVal/10);
-                                              lv_label_set_text(ui_LabelTWAValue, buf2);
-                                              debugD("environment.wind.angleTrueGround: %d deg", targetTrueVal); }));
+  // true wind direction varWind_directionTrue in rad
+  auto wind_directionTrue = new SKValueListener<float>("environment.wind.directionTrue");
+  wind_directionTrue->connect_to(new LambdaConsumer<float>([](float input)
+                                                           {
+    debugD("environment.wind.directionTrue: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varWindScr_EnvironmentWindDirectionTrue)
+      {
+        char displayValueBuffer[10];
+        int trueWindDirectionVal = int(trunc(input * 1800 / PI));
+        sprintf(displayValueBuffer, "%d", trueWindDirectionVal / 10);
+        debugD("setting ui_LabelTWDValue to %s", displayValueBuffer);
+        lv_label_set_text(ui_LabelTWDValue, displayValueBuffer);
+        varWindScr_EnvironmentWindDirectionTrue = input;
+      }
+    } }));
 
-  auto wdt = new SKValueListener<float>("environment.wind.directionTrue");
-  wdt->connect_to(new LambdaConsumer<float>([](float input)
-                                            {
-                                              int trueWindDirectionVal = int(trunc( input * 1800 / PI));
-                                              char buf2[10];
-                                              sprintf(buf2, "%d", trueWindDirectionVal/10);
-                                              lv_label_set_text(ui_LabelTWDValue, buf2);
-                                              debugD("environment.wind.directionTrue: %d deg", trueWindDirectionVal); }));
-
+  // true wind speed varWind_speedTrue in m/s
   auto wind_speedTrue = new SKValueListener<float>("environment.wind.speedTrue");
   wind_speedTrue->connect_to(new LambdaConsumer<float>([](float input)
-                                            {
-                                              char buf2[10];
-                                              sprintf(buf2, "%0.1f", input*1.944);
-                                              lv_label_set_text(ui_LabelTWSValue, buf2);
-                                              debugD("environment.wind.speedTrue: %d deg", input); }));
+                                                       {
+    debugD("environment.wind.speedTrue: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varWindScr_EnvironmentWindSpeedTrue)
+      {
+        char displayValueBuffer[10];
+        sprintf(displayValueBuffer, "%0.1f", input * 1.944);
+        debugD("setting ui_LabelTWSValue to %s", displayValueBuffer);
+        lv_label_set_text(ui_LabelTWSValue, displayValueBuffer);
+        varWindScr_EnvironmentWindSpeedTrue = input;
+      }
+    } }));
 
+  // depth below transducer (m)
   auto depth_belowTransducer = new SKValueListener<float>("environment.depth.belowTransducer");
   depth_belowTransducer->connect_to(new LambdaConsumer<float>([](float input)
-                                            {
-                                              debugD("environment.depth.belowTransducer: %f", input);
-                                              char buf2[10];
-                                              sprintf(buf2, "%0.1f", input);
-                                              lv_label_set_text(ui_LabelDepthValue, buf2); 
-                                              lv_label_set_text(ui_LabelCompDepth, buf2); 
-                                              }));
+                                                              {
+    debugD("environment.depth.belowTransducer: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input!=varCompassScr_EnvironmentDepthBelowTransducer)
+      {
+        char displayValueBuffer[10];
+        sprintf(displayValueBuffer, "%0.1f", input);
+        lv_label_set_text(ui_LabelCompDepth, displayValueBuffer);
+        varCompassScr_EnvironmentDepthBelowTransducer = input;
+      }      
+    }
 
+    if (!lv_obj_has_flag(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input!=varTridataScr_EnvironmentDepthBelowTransducer)
+      {
+        char displayValueBuffer[10];
+        sprintf(displayValueBuffer, "%0.1f", input);
+        lv_label_set_text(ui_LabelDepthValue, displayValueBuffer);
+        varTridataScr_EnvironmentDepthBelowTransducer = input;
+      }      
+    } }));
+
+  // speed through water -- from lag sensor varSpeedThroughWater in m/s
   auto speedThroughWater = new SKValueListener<float>("navigation.speedThroughWater");
-  speedThroughWater->connect_to(new LambdaConsumer<float>([](float input1)
-                                            {
-                                              debugD("navigation.speedThroughWater: %f", input1);
-                                              char buf2[10];
-                                              sprintf(buf2, "%0.1f", input1*1.944);
-                                              lv_label_set_text(ui_LabelSpeedValue, buf2); }));
+  speedThroughWater->connect_to(new LambdaConsumer<float>([](float input)
+                                                          {
+    debugD("navigation.speedThroughWater: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varTridataScr_NavigationSpeedThroughWater)
+      {
+        char displayValueBuffer[10];
+        sprintf(displayValueBuffer, "%0.1f", input * 1.944);
+        lv_label_set_text(ui_LabelSpeedValue, displayValueBuffer);
+        varTridataScr_NavigationSpeedThroughWater = input;
+      }
+    } }));
 
-
-
+  // GPS speed over ground varSpeedOverGround in m/s
   auto speedOverGround = new SKValueListener<float>("navigation.speedOverGround");
   speedOverGround->connect_to(new LambdaConsumer<float>([](float input)
-                                            {
-                                              debugD("navigation.speedOverGround: %f", input);
-                                              char buf2[10];
-                                              sprintf(buf2, "%0.1f", input*1.944);
-                                              lv_label_set_text(ui_LabelCompGPSSpeed, buf2); }));
+                                                        {
+    debugD("navigation.speedOverGround: %f", input);
+    if (!lv_obj_has_flag(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varCompassScr_NavigationSpeedOverGround)
+      {
+        char displayValueBuffer[10];
+        sprintf(displayValueBuffer, "%0.1f", input * 1.944);
+        lv_label_set_text(ui_LabelCompGPSSpeed, displayValueBuffer);
+        varCompassScr_NavigationSpeedOverGround = input;
+      }
+    } }));
 
-
+  // magnetic direction and compas dial rotation in rad
   auto courseOverGroundMagnetic = new SKValueListener<float>("navigation.courseOverGroundMagnetic");
   courseOverGroundMagnetic->connect_to(new LambdaConsumer<float>([](float input)
-                                            {
-                                              debugD("navigation.courseOverGroundMagnetic: %f", input);
-                                              int course = int(trunc( input * 1800 / PI));
-                                              char buf2[10];
-                                              sprintf(buf2, "%3d", course/10);
-                                              lv_label_set_text(ui_LabelDirectionValue, buf2); 
-                                              lv_label_set_text(ui_LabelCompasHeading, buf2); 
-                                              lv_img_set_angle(ui_ImageCompassBack, -course);
-                                              }));
+                                                                 {
+    debugD("navigation.courseOverGroundMagnetic: %f", input);
 
+    if (!lv_obj_has_flag(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varCompassScr_NavigationCourseOverGroundMagnetic)
+      {
+        char displayValueBuffer[10];
+        targetCompassAngle = int(trunc(input * 180 / PI));
+        sprintf(displayValueBuffer, "%3d", targetCompassAngle);
+        lv_label_set_text(ui_LabelCompasHeading, displayValueBuffer);
+        varCompassScr_NavigationCourseOverGroundMagnetic = input;
+      }
+    }
+
+    if (!lv_obj_has_flag(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN))
+    {
+      if (input != varTridataScr_NavigationCourseOverGroundMagnetic)
+      {
+        char displayValueBuffer[10];
+        int course = int(trunc(input * 180 / PI));
+        sprintf(displayValueBuffer, "%3d", course);
+        lv_label_set_text(ui_LabelDirectionValue, displayValueBuffer);
+        varTridataScr_NavigationCourseOverGroundMagnetic = input;
+      }
+        } }));
 
   // // print out free heap
   // app.onRepeat(2000, []() {
@@ -285,9 +400,8 @@ void setup()
 
   // });
 
-
   tft.begin();
-  tft.setRotation(0);  // 1/3 rotation
+  tft.setRotation(0); // 1/3 rotation
   tft.setBrightness(255);
 
   lv_init();
@@ -306,8 +420,8 @@ void setup()
   disp_drv.flush_cb = my_disp_flush;
   disp_drv.draw_buf = &draw_buf;
   // set rotation
-  //disp_drv.sw_rotate = 1; // 2/3 rotation
-  disp_drv.rotated = LV_DISP_ROT_90;// 3/3 rotation
+  // disp_drv.sw_rotate = 1; // 2/3 rotation
+  disp_drv.rotated = LV_DISP_ROT_90; // 3/3 rotation
   lv_disp_drv_register(&disp_drv);
 
   /*Initialize the input device driver*/
@@ -321,32 +435,49 @@ void setup()
   ui_init();
 
   sensesp_app->start();
+
+  _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
 }
 
 void loop()
 {
   lv_timer_handler();
-
-  if (currentAppVal > targetAppVal)
-  {
-    currentAppVal--;
-  }
-  else if (currentAppVal < targetAppVal)
-  {
-    currentAppVal++;
-  }
-  lv_img_set_angle(ui_ImageArrowApp, currentAppVal);
-
-  if (currentTrueVal > targetTrueVal)
-  {
-    currentTrueVal--;
-  }
-  else if (currentTrueVal < targetTrueVal)
-  {
-    currentTrueVal++;
-  }
-  lv_img_set_angle(ui_ImageArrowTrue, currentTrueVal);
-
-  // delay(1);
   app.tick();
+
+  // attempt to animate arrows by moving 1 degree at a time instead of jumping to target position
+  if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN))
+  {
+    if (currentTrueWindAngle != targetTrueWindAngle)
+    {
+      if (currentTrueWindAngle > targetTrueWindAngle)
+        currentTrueWindAngle--;
+      else if (currentTrueWindAngle < targetTrueWindAngle)
+        currentTrueWindAngle++;
+      debugD("setting set_angle ui_ImageArrowTrue to %d, target is %d", currentTrueWindAngle * 10, targetTrueWindAngle * 10);
+      lv_img_set_angle(ui_ImageArrowTrue, currentTrueWindAngle * 10); // we have 0-360, but UI needs 0-3600
+    }
+
+    if (currentAppWindAngle != targetAppWindAngle)
+    {
+      if (currentAppWindAngle > targetAppWindAngle)
+        currentAppWindAngle--;
+      else if (currentAppWindAngle < targetAppWindAngle)
+        currentAppWindAngle++;
+      debugD("setting set_angle ui_ImageArrowApp to %d, target is %d", currentAppWindAngle * 10, targetAppWindAngle * 10);
+      lv_img_set_angle(ui_ImageArrowApp, currentAppWindAngle * 10);
+    }
+  }
+
+  if (!lv_obj_has_flag(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN))
+  {
+    if (currentCompassAngle != targetCompassAngle)
+    {
+      if (currentCompassAngle > targetCompassAngle)
+        currentCompassAngle--;
+      else if (currentCompassAngle < targetCompassAngle)
+        currentCompassAngle++;
+      debugD("setting set_angle ui_ImageCompassBack to %d, target is %d", -currentCompassAngle * 10, -targetCompassAngle * 10);
+      lv_img_set_angle(ui_ImageCompassBack, -currentCompassAngle * 10);
+    }
+  }
 }
