@@ -1,4 +1,4 @@
-![](doc/img/project-logo.png)
+![](doc/img/project-logo.PNG)
 # SignalK marine instruments based on Panlee SC01 Plus device
 
 (AKA Poor man's boat instruments)
