@@ -1,172 +1,21 @@
 #include "sensesp/signalk/signalk_value_listener.h"
 #include "sensesp_app_builder.h"
+#include <Preferences.h>
+
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <esp_wifi.h>
+
+#include <nvs_flash.h>
+
+#include <SC01Plus.h>
+#include <utils.h>
 
 using namespace sensesp;
 
-#define LGFX_USE_V1
-#include <LovyanGFX.hpp>
-
-// SETUP LGFX PARAMETERS FOR WT32-SC01-PLUS
-class LGFX : public lgfx::LGFX_Device
-{
-
-  lgfx::Panel_ST7796 _panel_instance;
-  lgfx::Bus_Parallel8 _bus_instance;
-  lgfx::Light_PWM _light_instance;
-  lgfx::Touch_FT5x06 _touch_instance; // FT5206, FT5306, FT5406, FT6206, FT6236, FT6336, FT6436
-
-public:
-  LGFX(void)
-  {
-    {
-      auto cfg = _bus_instance.config();
-
-      cfg.freq_write = 20000000;
-      cfg.pin_wr = 47; // pin number connecting WR
-      cfg.pin_rd = -1; // pin number connecting RD
-      cfg.pin_rs = 0;  // Pin number connecting RS(D/C)
-      cfg.pin_d0 = 9;  // pin number connecting D0
-      cfg.pin_d1 = 46; // pin number connecting D1
-      cfg.pin_d2 = 3;  // pin number connecting D2
-      cfg.pin_d3 = 8;  // pin number connecting D3
-      cfg.pin_d4 = 18; // pin number connecting D4
-      cfg.pin_d5 = 17; // pin number connecting D5
-      cfg.pin_d6 = 16; // pin number connecting D6
-      cfg.pin_d7 = 15; // pin number connecting D7
-      // cfg.i2s_port = I2S_NUM_0; // (I2S_NUM_0 or I2S_NUM_1)
-
-      _bus_instance.config(cfg);              // Apply the settings to the bus.
-      _panel_instance.setBus(&_bus_instance); // Sets the bus to the panel.
-    }
-
-    {                                      // Set display panel control.
-      auto cfg = _panel_instance.config(); // Get the structure for display panel settings.
-
-      cfg.pin_cs = -1;   // Pin number to which CS is connected (-1 = disable)
-      cfg.pin_rst = 4;   // pin number where RST is connected (-1 = disable)
-      cfg.pin_busy = -1; // pin number to which BUSY is connected (-1 = disable)
-
-      // * The following setting values ​​are set to general default values ​​for each panel, and the pin number (-1 = disable) to which BUSY is connected, so please try commenting out any unknown items.
-
-      cfg.memory_width = 320;  // Maximum width supported by driver IC
-      cfg.memory_height = 480; // Maximum height supported by driver IC
-      cfg.panel_width = 320;   // actual displayable width
-      cfg.panel_height = 480;  // actual displayable height
-      cfg.offset_x = 0;        // Panel offset in X direction
-      cfg.offset_y = 0;        // Panel offset in Y direction
-      cfg.offset_rotation = 0; // was 2
-      cfg.dummy_read_pixel = 8;
-      cfg.dummy_read_bits = 1;
-      cfg.readable = true; // was false
-      cfg.invert = true;
-      cfg.rgb_order = false;
-      cfg.dlen_16bit = false;
-      cfg.bus_shared = true; // was false something to do with SD?
-
-      _panel_instance.config(cfg);
-    }
-
-    {                                      // Set backlight control. (delete if not necessary)
-      auto cfg = _light_instance.config(); // Get the structure for backlight configuration.
-
-      cfg.pin_bl = 45;     // pin number to which the backlight is connected
-      cfg.invert = false;  // true to invert backlight brightness
-      cfg.freq = 44100;    // backlight PWM frequency
-      cfg.pwm_channel = 0; // PWM channel number to use (7??)
-
-      _light_instance.config(cfg);
-      _panel_instance.setLight(&_light_instance); // Sets the backlight to the panel.
-    }
-
-    //*
-    { // Configure settings for touch screen control. (delete if not necessary)
-      auto cfg = _touch_instance.config();
-
-      cfg.x_min = 0;          // Minimum X value (raw value) obtained from the touchscreen
-      cfg.x_max = 319;        // Maximum X value (raw value) obtained from the touchscreen//319
-      cfg.y_min = 0;          // Minimum Y value obtained from touchscreen (raw value)
-      cfg.y_max = 479;        // Maximum Y value (raw value) obtained from the touchscreen//479
-      cfg.pin_int = 7;        // pin number to which INT is connected
-      cfg.bus_shared = false; // set true if you are using the same bus as the screen
-      cfg.offset_rotation = 1;
-
-      // For I2C connection
-      cfg.i2c_port = 0;    // Select I2C to use (0 or 1)
-      cfg.i2c_addr = 0x38; // I2C device address number
-      cfg.pin_sda = 6;     // pin number where SDA is connected
-      cfg.pin_scl = 5;     // pin number to which SCL is connected
-      cfg.freq = 400000;   // set I2C clock
-
-      _touch_instance.config(cfg);
-      _panel_instance.setTouch(&_touch_instance); // Set the touchscreen to the panel.
-    }
-    //*/
-    setPanel(&_panel_instance); // Sets the panel to use.
-  }
-};
-
-#include <lvgl.h>
-#include "ui/ui.h" // this is the ui generated with lvgl / squareline editor
-
-LGFX tft;
-
-#define screenWidth 480
-#define screenHeight 320
-
-// lv debugging can be set in lv_conf.h
-#if LV_USE_LOG != 0
-/* Serial debugging */
-void my_print(const char *buf)
-{
-  // debugD("%s", buf);
-  Serial.printf(buf);
-  Serial.flush();
-}
-#endif
-
-// create buffer for display
-static lv_disp_draw_buf_t draw_buf;
-static lv_color_t buf[screenWidth * 10];
-
-/* Display flushing */
-void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
-{
-  uint32_t w = (area->x2 - area->x1 + 1);
-  uint32_t h = (area->y2 - area->y1 + 1);
-  tft.startWrite();
-  tft.setAddrWindow(area->x1, area->y1, w, h);
-  tft.writePixels((lgfx::rgb565_t *)&color_p->full, w * h);
-  tft.endWrite();
-  lv_disp_flush_ready(disp);
-}
-
-/*Read the touchpad*/
-void my_touch_read(lv_indev_drv_t *indev_driver, lv_indev_data_t *data)
-{
-  uint16_t touchX, touchY;
-  bool touched = tft.getTouch(&touchX, &touchY);
-  if (!touched)
-  {
-    data->state = LV_INDEV_STATE_REL;
-  }
-  else
-  {
-    data->state = LV_INDEV_STATE_PR;
-    //  data->point.x = touchX;
-    //  data->point.y = touchY;
-    data->point.x = map(touchX, 0, 319, 0, 479); // after rotation need to fix range???
-    data->point.y = map(touchY, 0, 479, 0, 319);
-
-#if DEBUG_TOUCH != 0
-    Serial.print("Data x ");
-    Serial.print(data->point.x);
-    Serial.print("    y ");
-    Serial.println(data->point.y);
-#endif
-  }
-}
-
 ReactESP app;
+
+Preferences preferences;
 
 //************************************************************************************
 //  SETUP AND LOOP
@@ -201,20 +50,38 @@ int targetAppWindAngle = 0;
 int currentCompassAngle = 0;
 int targetCompassAngle = 0;
 
+String ipAddress = "";
+String ssid = "";
+String password = "";
+
+String hostname = "instruments-";
+String portalPassword = "password123";
+
 void setup()
 {
-
-  // Create a builder object
-  SensESPAppBuilder builder;
-
-  // Create the global SensESPApp() object.
-  sensesp_app = builder.set_hostname("sensesp-listener-heading")
-                    //->enable_ota("thisisfine")
-                    ->get_app();
 
 #ifndef SERIAL_DEBUG_DISABLED
   SetupSerialDebug(115200);
 #endif
+
+  preferences.begin("instruments", false);
+  // preferences.clear();
+  // preferences.remove(key);
+  // preferences.end();
+
+  // Create a builder object
+  SensESPAppBuilder builder;
+
+  String macAddress = WiFi.macAddress();
+  macAddress.replace(":", ""); // remove separator from MAC
+  hostname += macAddress;      // add MAC address to hostname in case we have multiple devices
+
+  // Create the global SensESPApp() object.
+  sensesp_app = builder.set_hostname(hostname)
+                    ->set_wifi_manager_password(portalPassword.c_str()) // captive/configuration portal password
+                    // ->set_wifi("WiFiAPname", "APpassword") // we can hardcode WIFI connection here so no need to configure via captive portal
+                    //->set_sk_server("10.0.0.77", 3000) //we can hardcode SignalK address so no need to configure via UI/mDNS
+                    ->get_app();
 
   // apparent wind speed (m/s)
   auto wind_speedApparent = new SKValueListener<float>("environment.wind.speedApparent");
@@ -400,51 +267,131 @@ void setup()
 
   // });
 
-  tft.begin();
-  tft.setRotation(0); // 1/3 rotation
-  tft.setBrightness(255);
+  init_display();
 
-  lv_init();
-
-#if LV_USE_LOG != 0
-  lv_log_register_print_cb(my_print); /* register print function for debugging */
-#endif
-
-  lv_disp_draw_buf_init(&draw_buf, buf, NULL, screenWidth * 10);
-
-  /*Initialize the display*/
-  static lv_disp_drv_t disp_drv;
-  lv_disp_drv_init(&disp_drv);
-  disp_drv.hor_res = screenWidth;
-  disp_drv.ver_res = screenHeight;
-  disp_drv.flush_cb = my_disp_flush;
-  disp_drv.draw_buf = &draw_buf;
-  // set rotation
-  // disp_drv.sw_rotate = 1; // 2/3 rotation
-  disp_drv.rotated = LV_DISP_ROT_90; // 3/3 rotation
-  lv_disp_drv_register(&disp_drv);
-
-  /*Initialize the input device driver*/
-  static lv_indev_drv_t indev_drv;
-  lv_indev_drv_init(&indev_drv);
-  indev_drv.type = LV_INDEV_TYPE_POINTER;
-  indev_drv.read_cb = my_touch_read;
-  lv_indev_drv_register(&indev_drv);
-
-  // start the UI
+  // start custom UI
+  debugD("init dispay");
   ui_init();
 
-  sensesp_app->start();
+  debugD("show splash");
+  _ui_flag_modify(ui_MainContainerSplash, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  // let's hide all labels but leave spinner and button
+  _ui_flag_modify(ui_LabelNeedToConfigure, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_LabelStartSignalK, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_LabelStartWiFiTxt, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_LabelStartSignalKTxt, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_LabelStartWiFiStatus, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_LabelStartSignalKStatus, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  // let's spin flash screen for 2 seconds and give a chance to press Facory reset button, before starting esp app
+  for (size_t i = 0; i < 2000; i++)
+  {
+    lv_timer_handler();
+    delay(1);
+  }
 
-  _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  // hide button and spinner
+  debugD("hide button and spinner");
+  _ui_flag_modify(ui_ButtonResetSettings, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_Spinner1, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+
+  debugD("displaying captive portal connection instruction");
+  _ui_flag_modify(ui_LabelNeedToConfigure, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  lv_label_set_text(ui_LabelNeedToConfigure, String(String("Connect to WiFi AP \n`Configure ") + String(hostname) + String("`\n use password: ") + String(portalPassword) + String("\nand set WiFi connection")).c_str());
+
+  refreshScreen();
+
+  debugD("starting sensesp_app");
+  // after this point UI will "stuck" till sensesp_app gets connected to WiFi and SignalK server
+  sensesp_app->start();
+  debugD("sensesp_app started");
+
+  // wait in splash screen
+  _ui_flag_modify(ui_LabelNeedToConfigure, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  _ui_flag_modify(ui_Spinner1, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  _ui_flag_modify(ui_LabelStartSignalK, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  _ui_flag_modify(ui_LabelStartWiFiTxt, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  _ui_flag_modify(ui_LabelStartSignalKTxt, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  _ui_flag_modify(ui_LabelStartWiFiStatus, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+  _ui_flag_modify(ui_LabelStartSignalKStatus, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+
+  //  WAIT FOR WIFI CONNECTION
+  while (WiFi.status() != WL_CONNECTED)
+  {
+    // spinner animation
+    lv_timer_handler();
+  }
+  ipAddress = WiFi.localIP().toString();
+  debugD("Connected to WiFi. IP address: %s", ipAddress.c_str());
+
+  String WiFiStatus = "Connected, IP: " + ipAddress;
+  lv_label_set_text(ui_LabelStartWiFiStatus, WiFiStatus.c_str()); // IP on splash screen
+
+  lv_timer_handler();
+
+  // wait for SK servere connection here
+  // need either connect to device web interface and set SK Server IP and port
+  // or wait for mDNS service to find SK server in the network
+  // mDNS service checkbox should be enabled in SKServer "Server->Settings"
+  String skStatus;
+  String skAddress;
+  auto wsclient = sensesp_app->get_ws_client();
+  while (!wsclient->is_connected())
+  {
+    skAddress = wsclient->get_server_address() + ":" + String(wsclient->get_server_port());
+    skStatus = wsclient->get_connection_status().c_str();
+    lv_label_set_text(ui_LabelStartSignalK, skAddress.c_str());
+    lv_label_set_text(ui_LabelStartSignalKStatus, skStatus.c_str());
+    lv_timer_handler();
+  }
+
+  // update labels on status screen
+  lv_label_set_text(ui_LabelIP, WiFiStatus.c_str());       // IP
+  lv_label_set_text(ui_LabelDeviceName, hostname.c_str()); // device name
+  lv_label_set_text(ui_LabelSKAddress, skAddress.c_str()); // SK Server address
+  lv_label_set_text(ui_LabelSKStatus, skStatus.c_str());   // SK Server connection status
+
+  // update screen
+  lv_timer_handler();
+
+  // hide splash
+  debugD("hide splash");
+  _ui_flag_modify(ui_MainContainerSplash, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_ADD);
+  // read settings and show default working screen
+  // you can set preffered default screen in status page
+  // if you have multiple screens each can boot into different default page
+  int selectedScreen = preferences.getInt("startupDisplay", 0);
+  debugD("startup display is: %d", selectedScreen);
+  switch (selectedScreen)
+  {
+  case 0:
+    _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+    break;
+  case 1:
+    _ui_flag_modify(ui_MainContainerCompass, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+    break;
+  case 2:
+    _ui_flag_modify(ui_MainContainerTridata, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+    break;
+  default:
+    _ui_flag_modify(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN, _UI_MODIFY_FLAG_REMOVE);
+    break;
+  }
+  lv_dropdown_set_selected(ui_DropdownDefaultScreen, selectedScreen);
+  // do render
+  lv_timer_handler();
 }
 
+// main loop
 void loop()
 {
+  // refresh screen
   lv_timer_handler();
+
+  // do sensesp stuff
   app.tick();
 
   // attempt to animate arrows by moving 1 degree at a time instead of jumping to target position
+  // TODO: fix full circle transition when value crosses 0, f.e. when it changes from 5 to 355
   if (!lv_obj_has_flag(ui_MainContainerWind, LV_OBJ_FLAG_HIDDEN))
   {
     if (currentTrueWindAngle != targetTrueWindAngle)
@@ -480,4 +427,24 @@ void loop()
       lv_img_set_angle(ui_ImageCompassBack, -currentCompassAngle * 10);
     }
   }
+}
+
+// save default screen selection in nvram
+void updateDefaultStartupScreen(lv_event_t *e)
+{
+  debugD("dropdown changed event");
+  lv_obj_t *dropdown = lv_event_get_target(e);
+  int i = lv_dropdown_get_selected(dropdown);
+  preferences.putInt("startupDisplay", i);
+  debugD("dropdown changed to %d", i);
+}
+
+void resetSettings(lv_event_t *e)
+{
+  debugD("erasing nvs parameters...");
+  nvs_flash_erase(); // erase the NVS partition and...
+  nvs_flash_init();
+  debugD("erasing all SPIFFS files...");
+  listDirAndDelete(SPIFFS, "/", 0);
+  ESP.restart();
 }
