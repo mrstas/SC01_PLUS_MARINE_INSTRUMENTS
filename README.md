@@ -1,10 +1,10 @@
-![](.\doc\img\project-logo.png)
+![](doc/img/project-logo.png)
 # SignalK marine instruments based on Panlee SC01 Plus device
 
 (AKA Poor man's boat instruments)
 
 
-![](.\doc\img\screens-all.png)
+![](doc/img/screens-all.png)
 
 The main aim of this project is to create cheap sets of sailing vessel :sailboat: instruments (indicators).
 Cheap and available Panlee SC01-Plus is used as dispaly. It has relatively large TFT panel and quite powerfull ESP32 core.
@@ -16,7 +16,7 @@ Quick video demo of this display:
 
 Unfortunatelly this screen is not waterproof so it can't be used outside but only as an extra display inside the boat.
 
-![Panlee SC01 Plus display](.\doc\img\sc01-plus.png)
+![Panlee SC01 Plus display](doc/img/sc01-plus.png)
 
 
 This project is based on [SignalK SensESP](https://github.com/SignalK/SensESP) project, [LVGL](https://github.com/lvgl/lvgl) and [LovyanGFX](https://github.com/lovyan03/LovyanGFX) graphics libraries.
@@ -30,23 +30,23 @@ Device name will be combined from prefix followed by MAC address.
 5. Unfortunatelly SC01Plus is not in the predefined boards list so few parameters are redefined over generic "um_tinys3" board definition in [platformio.ini](src\platformio.ini) file (and board most likely won't be added due to political shit from Espressif)
 6. Go to PlatformIO plugin, select upload port and click on "Upload" task. Firmware will be compiled and flashed.
 
-![](.\doc\img\platformio.png)
+![](doc/img/platformio.png)
 
 ## How to Setup.
 After flashing you will see spinner for few seconds along with "Factory reset" button.
 
-![](.\doc\img\screen-splash-start.png)
+![](doc/img/screen-splash-start.png)
 
 If you set something wrong it is your chance after reboot to press this button and start configuration from scratch.
 
 Next you will see this screen:
 
-![](.\doc\img\screen-splash-howtoconnect.png)
+![](doc/img/screen-splash-howtoconnect.png)
 
 It will tell you WiFi AP name and password. Use your mobile phone (laptop or tablet), connect to that AP using provided password.
 After connection you will be redirecter to Captive portal (to set WiFi setting)
 
-![](.\doc\img\captive-portal.png)
+![](doc/img/captive-portal.png)
 
 Here you should select your boar WiFi network where your SKServer is running (only 2.4GHz networks are supported by SC01).
 Click "Configure WiFI", select your WiFi network (or enter SSID manually), set password and click "Save".
@@ -56,7 +56,7 @@ Once password is saved you will be disconnected from portal and device will atte
 If device is unable to connect to WiFi you can connect to captive portal again and set correct WiFi connection parameters.
 In case of successfull connection status screen will show device IP address and SK Server connection status.
 
-![](.\doc\img\screen-splash-connection-status.png)
+![](doc/img/screen-splash-connection-status.png)
 
 Now we need to connect to SignalK server. There are two ways to connect:
 1. Using mDNS service
@@ -74,7 +74,7 @@ in Docker container (unless you open additional ports, but I have not tried it).
     Navigate to IP adress dispalyed on splash screen, f.e. http://10.0.0.27 (or whatever is dispalyed on splash screen, insecure http connection, not https)
 You will see 3 tabs: Status, Configuration, Control
 
-![](.\doc\img\web-interface-config.png)
+![](doc/img/web-interface-config.png)
 
 Open Configuration tab, scroll to "System/Signal K Settings" section, set address, port and save settings. Device will restart.
 
@@ -82,13 +82,13 @@ After setting connection to SKServer display will "stuck" in "Authorizing with S
 At this point you have to connect to your SignalK server, open "Security->Access request" where you will find device that is 
 trying to connect. Select requred device (you've set unique names for all your devices, right?), select Read/Write as Permissions and "NEVER" as expiration.
 
-![](.\doc\img\signalk-access-request.png)
+![](doc/img/signalk-access-request.png)
 
 If device authorized in SignalK but still show "Authorizing..." status you may try to power cycle display manually.
 
 After sucessfull authorization with SignalK server device will show default "Wind" page and start to receve data.
 
-![](.\doc\img\screen-wind.png)
+![](doc/img/screen-wind.png)
 
 
 ## List of indicators and SignalK data pathes:
@@ -126,7 +126,7 @@ After sucessfull authorization with SignalK server device will show default "Win
 
 For Flashing and debugging external "debug" board is used (it is just USB to RS232 converter with couple buttons). It is connected to device "debug" port.
 
-![](.\doc\img\display-debugger-rs232.png)
+![](doc/img/display-debugger-rs232.png)
 
 Physically it is connecting to Serial0 (Tx0, Rx0) interface of the ESP chip. While onboard USB connector is creating virtual serial port.
 All debug information (debugD or Serial.print) are sent to virtual "Serial" port alias (without number).
@@ -166,7 +166,7 @@ How to update graphics:
 1. Download and install Squareline sudio. Personal free license is enough to modify this simple content.
 2. Open project from SquareLineProject subfolder.
 3. Set these project settings
-![](.\doc\img\squareline-project-settings.png)
+![](doc/img/squareline-project-settings.png)
 4. Point **Project Export Root** and **UI Files Export Path** to some temporary location.
 5. Make changes, save project.
 6. Use menu Export -> Export UI files
